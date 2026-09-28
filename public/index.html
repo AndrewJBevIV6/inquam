@@ -88,14 +88,29 @@ const h = (strings, ...vals) => strings.reduce((a, s, i) => a + s + (vals[i] ?? 
 const $ = id => document.getElementById(id);
 const parts = s => Object.values(s.users).filter(u => u.role === 'participant');
 const letter = i => String.fromCharCode(65 + i);
-setInterval(() => { const ph = state.current && Engine.phase(state, state.current); if (ph && ph.status === 'open' && ph.closesAt) render(); }, 250);
+// Countdown: touch only the clock text, never rebuild the page.
+setInterval(() => {
+  const ph = state.current && Engine.phase(state, state.current);
+  const el = document.querySelector('.clock[data-closes]'); if (!ph || !el) return;
+  if (ph.status === 'open' && ph.closesAt) el.textContent = Math.max(0, Math.ceil((ph.closesAt - Date.now()) / 1000)) + 's';
+}, 250);
+// Never rebuild the page while a pointer is down (a button swapped out mid-click never fires).
+let pointerDown = false, dirty = false;
+document.addEventListener('pointerdown', () => pointerDown = true, true);
+const pointerUp = () => { pointerDown = false; if (dirty) { dirty = false; render(); } };
+document.addEventListener('pointerup', pointerUp, true); document.addEventListener('pointercancel', pointerUp, true);
 
 // ------------------------------------------------------------------ render
 function render(lastOp) {
   if (!me) return renderLanding();
-  // Don't rebuild the DOM under a participant mid-typing for someone else's presence op.
-  if (lastOp && lastOp.type === 'select' && document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+  if (pointerDown || local.drag) { dirty = true; return; }
+  const ae = document.activeElement, editing = ae && ['TEXTAREA', 'INPUT', 'SELECT'].includes(ae.tagName);
+  // Presence-only ops never justify pulling focus from a field someone is using.
+  if (lastOp && lastOp.type === 'select' && editing) return;
+  // Otherwise rebuild, then put focus and caret back where they were.
+  const keep = editing && ae.id ? { id: ae.id, s: ae.selectionStart, e: ae.selectionEnd } : null;
   if (me.role === 'presenter') renderPresenter(); else renderParticipant();
+  if (keep) { const el = document.getElementById(keep.id); if (el) { el.focus({ preventScroll: true }); if (keep.s != null && el.setSelectionRange) try { el.setSelectionRange(keep.s, keep.e); } catch {} } }
 }
 
 function renderLanding() {
@@ -126,7 +141,7 @@ function phaseLine(s, itemId) {
   const ph = Engine.phase(s, itemId);
   if (ph.status === 'open') {
     const left = ph.closesAt ? Math.max(0, Math.ceil((ph.closesAt - Date.now()) / 1000)) : null;
-    return h`<span class="clock">${left == null ? 'Open' : left + 's'}</span> <span class="mute small">${ph.sealed ? 'hidden until close' : 'shown live'}</span>`;
+    return h`<span class="clock" data-closes="${ph.closesAt || ''}">${left == null ? 'Open' : left + 's'}</span> <span class="mute small">${ph.sealed ? 'hidden until close' : 'shown live'}</span>`;
   }
   if (ph.status === 'closed') return h`<span class="clock">Closed</span>`;
   return h`<span class="mute">Not open</span>`;
@@ -356,17 +371,15 @@ function collabStage(root, c) {
   const d = c.doc, sel = Engine.selectors(c.s, `${c.id}:text`);
   const authors = Object.keys(d.authors).map(id => h`<span>${sq(id)}${d.authors[id]}</span>`).join(' ');
   if (c.presenter || !c.canAct) { root.innerHTML = h`<h3>${esc(d.prompt)}</h3><pre class="text">${esc(d.text)}</pre><p class="small mute">Editing now: ${sel.map(id => sq(id)).join('') || 'nobody'} · edits: ${authors || 'none'}</p>`; return; }
-  const ta = document.createElement('textarea'); ta.value = d.text; ta.style.minHeight = '160px';
+  const ta = document.createElement('textarea'); ta.id = 'collab-' + c.id; ta.value = d.text; ta.style.minHeight = '160px';
   root.innerHTML = h`<h3>${esc(d.prompt)}</h3>`; root.appendChild(ta);
   const info = document.createElement('p'); info.className = 'small mute'; info.innerHTML = `Editing now: ${sel.map(id => sq(id)).join('') || 'nobody'} · edits: ${authors || 'none'}`; root.appendChild(info);
-  const caret = local.collabText[c.id]; if (caret != null && document.activeElement !== ta) { ta.focus(); ta.setSelectionRange(Math.min(caret, ta.value.length), Math.min(caret, ta.value.length)); }
-  ta.onfocus = () => select(`${c.id}:text`); ta.onblur = () => { local.collabText[c.id] = null; select(null); };
+  ta.onfocus = () => select(`${c.id}:text`); ta.onblur = () => select(null);
   ta.oninput = () => {
     const before = d.text, after = ta.value;
     let a = 0; while (a < before.length && a < after.length && before[a] === after[a]) a++;
     let b = 0; while (b < before.length - a && b < after.length - a && before[before.length - 1 - b] === after[after.length - 1 - b]) b++;
     const del = before.length - a - b, ins = after.slice(a, after.length - b);
-    local.collabText[c.id] = ta.selectionStart;
     if (del > 0) op('delete', { item: c.id, pos: a, len: del });
     if (ins) op('insert', { item: c.id, pos: a, text: ins });
   };
@@ -380,7 +393,7 @@ function matchStage(root, c) {
       <p class="mute small">Right column: ${d.right.map((r, j) => letter(j) + '. ' + esc(r)).join(' &nbsp; ')}</p>${c.closed ? resultsTable(c, p => `${p.score} of ${p.of}`) : liveList(c)}`; return;
   }
   const mine = d.answers[me.id] || d.left.map(() => null);
-  root.innerHTML = h`<h3>${esc(d.prompt)}</h3><table>${d.left.map((l, i) => h`<tr><td style="width:45%">${esc(l)}</td><td><select data-i="${i}" ${!c.canAct ? 'disabled' : ''}><option value="">—</option>${d.right.map((r, j) => h`<option value="${j}" ${mine[i] === j ? 'selected' : ''}>${letter(j)}. ${esc(r)}</option>`).join('')}</select></td></tr>`).join('')}</table>${myVerdict(c)}`;
+  root.innerHTML = h`<h3>${esc(d.prompt)}</h3><table>${d.left.map((l, i) => h`<tr><td style="width:45%">${esc(l)}</td><td><select id="match-${c.id}-${i}" data-i="${i}" ${!c.canAct ? 'disabled' : ''}><option value="">—</option>${d.right.map((r, j) => h`<option value="${j}" ${mine[i] === j ? 'selected' : ''}>${letter(j)}. ${esc(r)}</option>`).join('')}</select></td></tr>`).join('')}</table>${myVerdict(c)}`;
   root.querySelectorAll('select').forEach(sl => sl.onchange = () => op('match', { item: c.id, i: +sl.dataset.i, j: sl.value === '' ? null : +sl.value }));
 }
 
