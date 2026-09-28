@@ -1,0 +1,8 @@
+{
+  "name": "respond",
+  "version": "0.1.0",
+  "description": "Real-time classroom activity engine: op log + pluggable activities",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}
