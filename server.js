@@ -17,7 +17,7 @@ function newRoom() {
   let code;
   do { code = Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 23)]).join(''); }
   while (rooms.has(code));
-  const room = { code, log: [], state: Engine.initState(), clients: new Map(), timer: null, colorIdx: 0 };
+  const room = { code, log: [], state: Engine.initState(), clients: new Map(), timers: {}, colorIdx: 0 };
   rooms.set(code, room);
   return room;
 }
@@ -28,35 +28,33 @@ function send(ws, msg) { if (ws.readyState === 1) ws.send(JSON.stringify(msg)); 
 function commit(room, actor, type, payload) {
   const op = { seq: room.log.length + 1, t: Date.now(), actor, type, payload: payload || {} };
   if (!Engine.allowed(room.state, op)) return null;
-  const sealedBefore = room.state.phase.sealed && room.state.phase.status === 'open';
+  const it = op.payload.item;
+  const sealedBefore = it && Engine.phase(room.state, it).status === 'open' && Engine.phase(room.state, it).sealed;
   room.log.push(op);
   Engine.reduce(room.state, op);
   for (const [ws, viewer] of room.clients) {
     if (Engine.visible(room.state, op, viewer)) send(ws, { type: 'op', op });
   }
-  if (type === 'close' && sealedBefore) broadcastSnapshot(room);
+  // Sealed close, or a private-mode close: everyone needs the full picture now.
+  if (type === 'close' && (sealedBefore || (Engine.plugin(room.state, it).private && Engine.plugin(room.state, it).private(room.state.docs[it])))) broadcastSnapshot(room);
   if (type === 'open') {
-    clearTimeout(room.timer);
-    if (payload.seconds) room.timer = setTimeout(() => commit(room, actor, 'close', {}), payload.seconds * 1000);
+    clearTimeout(room.timers[it]);
+    if (payload.seconds) room.timers[it] = setTimeout(() => commit(room, actor, 'close', { item: it }), payload.seconds * 1000);
   }
-  if (type === 'close' || type === 'load' || type === 'clear') clearTimeout(room.timer);
+  if (type === 'close' || type === 'reset') clearTimeout(room.timers[it]);
+  if (type === 'load_deck' || type === 'clear_deck') { Object.values(room.timers).forEach(clearTimeout); room.timers = {}; }
   return op;
 }
 
 function broadcastSnapshot(room) {
-  for (const [ws] of room.clients) send(ws, { type: 'snapshot', state: room.state });
+  for (const [ws, viewer] of room.clients) send(ws, { type: 'snapshot', state: snapshotFor(room, viewer) });
 }
 
 // A viewer-specific snapshot: strip what this viewer may not yet see.
 function snapshotFor(room, viewer) {
   const s = JSON.parse(JSON.stringify(room.state));
-  if (viewer.role === 'presenter' || s.phase.status !== 'open') return s;
-  const a = Engine.activities[s.activity];
-  if (!a || !s.doc) return s;
-  if (s.phase.sealed || (a.kind === 'place' && s.doc.mode === 'individual')) {
-    if (a.kind === 'mcq') s.doc.answers = viewer.id in s.doc.answers ? { [viewer.id]: s.doc.answers[viewer.id] } : {};
-    if (a.kind === 'place') s.doc.copies = viewer.id in s.doc.copies ? { [viewer.id]: s.doc.copies[viewer.id] } : {};
-  }
+  if (viewer.role === 'presenter' || !s.deck) return s;
+  for (const it of s.deck.items) s.docs[it.id] = Engine.stripDoc(s, it.id, viewer);
   return s;
 }
 

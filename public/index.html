@@ -7,7 +7,7 @@
 <style>
   :root {
     --paper: #f7f6f2; --ink: #1c1b18; --mute: #6f6c64; --line: #d9d6cd; --panel: #ffffff;
-    --ok: #2ea36b; --bad: #e0523f; --accent: #2f7fd6;
+    --ok: #2ea36b; --bad: #e0523f; --accent: #2f7fd6; --open: #e0a021;
     box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -19,78 +19,87 @@
   main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
   h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
   h2 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; }
-  p { margin: 6px 0; } .mute { color: var(--mute); }
+  h3 { font-size: 19px; font-weight: 600; margin: 12px 0; }
+  p { margin: 6px 0; } .mute { color: var(--mute); } .small { font-size: 14px; }
   button { font: inherit; padding: 8px 14px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; }
   button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   button:disabled { opacity: .45; cursor: default; }
-  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   input, textarea, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); width: 100%; }
-  textarea { min-height: 72px; resize: vertical; }
+  textarea { min-height: 72px; resize: vertical; } textarea.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; min-height: 320px; }
   label { display: block; font-size: 14px; color: var(--mute); margin: 10px 0 4px; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 12px 0; }
-  .code { font-size: 44px; font-weight: 600; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
-  .clock { font-size: 36px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .code { font-size: 44px; font-weight: 600; letter-spacing: .12em; }
+  .clock { font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .sq { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 2px; }
-  .roster { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-  .roster .off { opacity: .4; }
+  .roster { display: flex; flex-wrap: wrap; gap: 6px 14px; } .roster .off { opacity: .4; }
   .opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 16px; margin: 8px 0; font-size: 18px; border-radius: 10px; border: 2px solid var(--line); }
-  .opt.mine { border-color: var(--ink); }
-  .opt.key { border-color: var(--ok); }
+  .opt.mine { border-color: var(--ink); } .opt.key { border-color: var(--ok); }
   .opt .bar { height: 8px; border-radius: 4px; background: var(--ink); opacity: .8; }
   .opt .sqs { margin-left: auto; display: flex; gap: 2px; }
-  .tabs { display: flex; gap: 6px; } .tabs button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .strip { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .strip button { padding: 6px 10px; border-width: 2px; } .strip button.cur { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .strip button.open { border-color: var(--open); } .strip button.closed { border-color: var(--ok); }
   canvas { width: 100%; touch-action: none; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); display: block; }
-  .hidden { display: none !important; }
-  table { border-collapse: collapse; width: 100%; font-size: 15px; } td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; } td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  .chip { display: inline-block; padding: 6px 12px; border: 2px solid var(--line); border-radius: 999px; margin: 4px 4px 0 0; font-size: 17px; }
+  .chip.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  .numrow { display: grid; grid-template-columns: 1.4fr auto 1fr 1.6fr; gap: 8px; align-items: center; }
+  .refused { color: var(--bad); font-size: 14px; min-height: 18px; }
+  pre.text { white-space: pre-wrap; font: inherit; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; min-height: 60px; }
   input[type=range] { padding: 0; }
-  .refused { color: var(--bad); font-size: 14px; }
+  details summary { cursor: pointer; color: var(--mute); font-size: 14px; }
 </style>
 </head>
 <body>
 <main id="app"></main>
 <script src="/shared/engine.js"></script>
 <script>
-// ---------------------------------------------------------------- client core
+// ------------------------------------------------------------- client core
 const app = document.getElementById('app');
-let ws = null, me = null, state = Engine.initState(), log = null, replayAt = null;
-let hello = null, refusedNote = '';
-let live = { hover: null, drag: null };  // local UI state
+let ws = null, me = null, state = Engine.initState(), hello = null, refusedNote = '';
+let log = null, replayAt = null, pendingExport = false;
+let local = { drag: null, collabText: {}, frqDraft: {}, numDraft: {} };
+let deckText = null;
 
 function connect(h) {
   hello = h;
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
   ws.onopen = () => ws.send(JSON.stringify({ type: 'hello', ...h }));
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
     if (m.type === 'welcome') { me = { id: m.id, role: m.role, room: m.room }; state = m.state; hello.room = m.room; render(); }
-    else if (m.type === 'op') { if (m.op.seq > state.seq) Engine.reduce(state, m.op); render(); }
+    else if (m.type === 'op') { if (m.op.seq > state.seq) Engine.reduce(state, m.op); render(m.op); }
     else if (m.type === 'snapshot') { state = m.state; render(); }
-    else if (m.type === 'log') { log = m.log; replayAt = log.length; render(); }
+    else if (m.type === 'log') { log = m.log; if (pendingExport) { pendingExport = false; exportCsv(); } else { replayAt = log.length; } render(); }
     else if (m.type === 'refused') { refusedNote = 'That action is not allowed right now.'; render(); setTimeout(() => { refusedNote = ''; render(); }, 1500); }
-    else if (m.type === 'error') { alert(m.message); ws.close(); me = null; hello = null; render(); }
+    else if (m.type === 'error') { alert(m.message); hello = null; ws.close(); me = null; render(); }
   };
   ws.onclose = () => { if (hello) setTimeout(() => connect(hello), 1500); };
 }
 function op(type, payload) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'op', op: { type, payload } })); }
-function select(node) { op('select', { node }); }
+const select = node => op('select', { node });
 const user = id => state.users[id] || { name: '?', color: '#999' };
 const sq = (id, big) => `<span class="sq" style="background:${user(id).color};${big ? 'width:18px;height:18px;' : ''}" title="${esc(user(id).name)}"></span>`;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const h = (strings, ...vals) => strings.reduce((a, s, i) => a + s + (vals[i] ?? ''), '');
-function el(html) { app.innerHTML = html; }
-setInterval(() => { if (state.phase.status === 'open' && state.phase.closesAt) render(); }, 250);
+const $ = id => document.getElementById(id);
+const parts = s => Object.values(s.users).filter(u => u.role === 'participant');
+const letter = i => String.fromCharCode(65 + i);
+setInterval(() => { const ph = state.current && Engine.phase(state, state.current); if (ph && ph.status === 'open' && ph.closesAt) render(); }, 250);
 
-// -------------------------------------------------------------------- render
-function render() {
+// ------------------------------------------------------------------ render
+function render(lastOp) {
   if (!me) return renderLanding();
-  const s = replayAt != null && log ? Engine.replay(log, replayAt) : state;
-  if (me.role === 'presenter') renderPresenter(s); else renderParticipant(s);
+  // Don't rebuild the DOM under a participant mid-typing for someone else's presence op.
+  if (lastOp && lastOp.type === 'select' && document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+  if (me.role === 'presenter') renderPresenter(); else renderParticipant();
 }
 
 function renderLanding() {
-  el(h`
+  app.innerHTML = h`
     <h1>Respond</h1>
     <p class="mute">Real-time activities for a room of people.</p>
     <div class="panel">
@@ -101,238 +110,345 @@ function renderLanding() {
     </div>
     <div class="panel">
       <h2 style="margin-top:0">Run a room</h2>
-      <p class="mute">Creates a new room code for participants to join.</p>
       <div class="row" style="margin-top:12px"><button id="host">Start a room as presenter</button></div>
-    </div>`);
+    </div>`;
   const q = new URLSearchParams(location.search);
-  if (q.get('room')) document.getElementById('jcode').value = q.get('room');
-  document.getElementById('join').onclick = () => {
-    const room = document.getElementById('jcode').value.trim(), name = document.getElementById('jname').value.trim();
+  if (q.get('room')) $('jcode').value = q.get('room');
+  $('join').onclick = () => {
+    const room = $('jcode').value.trim(), name = $('jname').value.trim();
     if (room.length !== 4 || !name) return alert('Enter the 4-letter room code and your name.');
     connect({ role: 'participant', room, name });
   };
-  document.getElementById('host').onclick = () => connect({ role: 'presenter', room: null, name: 'Presenter' });
+  $('host').onclick = () => connect({ role: 'presenter', room: null, name: 'Presenter' });
 }
 
-function phaseLine(s) {
-  const ph = s.phase;
+function phaseLine(s, itemId) {
+  const ph = Engine.phase(s, itemId);
   if (ph.status === 'open') {
     const left = ph.closesAt ? Math.max(0, Math.ceil((ph.closesAt - Date.now()) / 1000)) : null;
-    return h`<span class="clock">${left == null ? 'Open' : left + 's'}</span> <span class="mute">${ph.sealed ? 'responses hidden until close' : 'responses shown live'}</span>`;
+    return h`<span class="clock">${left == null ? 'Open' : left + 's'}</span> <span class="mute small">${ph.sealed ? 'hidden until close' : 'shown live'}</span>`;
   }
   if (ph.status === 'closed') return h`<span class="clock">Closed</span>`;
-  return h`<span class="mute">Not started</span>`;
+  return h`<span class="mute">Not open</span>`;
+}
+function rosterHtml(s) {
+  const ps = parts(s);
+  if (!ps.length) return '<p class="mute">No one has joined yet.</p>';
+  return '<div class="roster">' + ps.map(u => h`<span class="${u.online ? '' : 'off'}">${sq(u.id)} ${esc(u.name)}</span>`).join('') + '</div>';
 }
 
-function rosterHtml(s, withSel) {
-  const ids = Object.keys(s.users).filter(id => s.users[id].role === 'participant');
-  if (!ids.length) return '<p class="mute">No one has joined yet.</p>';
-  return '<div class="roster">' + ids.map(id => h`<span class="${s.users[id].online ? '' : 'off'}">${sq(id)} ${esc(s.users[id].name)}${withSel && s.presence[id] ? '<span class="mute"> · ' + esc(s.presence[id].node) + '</span>' : ''}</span>`).join('') + '</div>';
-}
-
-// ------------------------------------------------------------------ presenter
-let setupKind = 'mcq';
-function renderPresenter(s) {
-  const a = s.activity && Engine.activities[s.activity];
-  el(h`
+// ---------------------------------------------------------------- presenter
+function renderPresenter() {
+  const s = state;
+  app.innerHTML = h`
     <div class="row" style="justify-content:space-between">
-      <div><h1>Room</h1><div class="code">${me.room}</div><p class="mute">Join at ${location.host}?room=${me.room}</p></div>
-      <div style="text-align:right">${phaseLine(s)}</div>
+      <div><h1>Room</h1><div class="code">${me.room}</div><p class="mute small">Join at ${location.host}?room=${me.room}</p></div>
+      <div style="text-align:right">${s.current ? phaseLine(s, s.current) : ''}</div>
     </div>
-    <h2>Participants</h2>${rosterHtml(s, true)}
-    <div id="setup"></div>
-    <div id="stage"></div>
-    <div id="replay"></div>`);
+    <h2>Participants</h2>${rosterHtml(s)}
+    <div id="deck"></div><div id="record"></div>`;
+  if (!s.deck) return renderDeckEditor($('deck'));
 
-  const setup = document.getElementById('setup');
-  if (!a) {
-    setup.innerHTML = h`
-      <h2>New activity</h2>
-      <div class="tabs">${Object.values(Engine.activities).map(x => h`<button data-k="${x.kind}" class="${setupKind === x.kind ? 'on' : ''}">${x.label}</button>`).join('')}</div>
-      <div class="panel" id="form"></div>`;
-    setup.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { setupKind = b.dataset.k; render(); });
-    renderSetupForm(document.getElementById('form'));
-    return;
-  }
-
-  const ph = s.phase;
-  setup.innerHTML = h`
+  const d = $('deck'), cur = s.current, it = Engine.item(s, cur), ph = Engine.phase(s, cur);
+  d.innerHTML = h`
+    <h2>${esc(s.deck.title || 'Deck')}</h2>
+    <div class="strip">${s.deck.items.map((x, i) => h`<button data-i="${x.id}" class="${x.id === cur ? 'cur' : ''} ${Engine.phase(s, x.id).status}">${i + 1}</button>`).join('')}
+      <button id="unload" style="margin-left:auto">Unload deck</button></div>
     <div class="panel row">
-      <span><b>${a.label}</b></span>
+      <span><b>${Engine.activities[it.kind].label}</b></span>
       ${ph.status !== 'open' ? h`<label style="margin:0">Seconds</label><input id="secs" type="number" value="30" style="width:80px">
         <label style="margin:0;display:flex;align-items:center;gap:6px"><input id="sealed" type="checkbox" style="width:auto"> Hide until close</label>
         <button class="primary" id="open">${ph.status === 'closed' ? 'Reopen' : 'Open'}</button>` : h`<button class="primary" id="close">Close now</button>`}
-      <button id="clear">End activity</button>
+      ${ph.status === 'closed' ? '<button id="reset">Reset responses</button>' : ''}
       <span class="refused">${refusedNote}</span>
-    </div>`;
-  const $ = id => document.getElementById(id);
-  if ($('open')) $('open').onclick = () => op('open', { seconds: +$('secs').value || 0, sealed: $('sealed').checked });
-  if ($('close')) $('close').onclick = () => op('close', {});
-  $('clear').onclick = () => { if (confirm('End this activity?')) { log = null; replayAt = null; op('clear', {}); } };
+    </div>
+    <div id="stage"></div>`;
+  d.querySelectorAll('.strip button[data-i]').forEach(b => b.onclick = () => op('goto', { item: b.dataset.i }));
+  $('unload').onclick = () => { if (confirm('Unload this deck? Responses are kept in the record.')) op('clear_deck', {}); };
+  if ($('open')) $('open').onclick = () => op('open', { item: cur, seconds: +$('secs').value || 0, sealed: $('sealed').checked });
+  if ($('close')) $('close').onclick = () => op('close', { item: cur });
+  if ($('reset')) $('reset').onclick = () => { if (confirm('Clear everyone\'s responses to this item?')) op('reset', { item: cur }); };
+  renderStage($('stage'), s, cur, { presenter: true });
 
-  const stage = document.getElementById('stage');
-  if (a.kind === 'mcq') stage.innerHTML = mcqHtml(s, null, true);
-  if (a.kind === 'place') { stage.innerHTML = h`<p>${esc(s.doc.prompt)}</p><canvas id="board" width="800" height="800"></canvas>${placeResultsHtml(s)}`; drawBoard(s, document.getElementById('board'), null, true); }
-
-  const rp = document.getElementById('replay');
-  rp.innerHTML = h`<h2>Replay</h2>
-    ${log ? h`<div class="row"><input type="range" id="scrub" min="0" max="${log.length}" value="${replayAt}" style="flex:1">
-      <span class="mute" style="min-width:110px">op ${replayAt} / ${log.length}</span><button id="liveBtn">Back to live</button></div>
-      <p class="mute">${replayAt > 0 ? opLine(log[replayAt - 1]) : 'Start'}</p>` : h`<button id="loadLog">Load the record</button>`}`;
+  const r = $('record');
+  r.innerHTML = h`<h2>Record</h2>
+    <div class="row"><button id="csv">Export CSV</button>${log ? '<button id="unload2">Close replay</button>' : '<button id="loadLog">Open replay</button>'}</div>
+    ${log ? h`<div class="row" style="margin-top:8px"><input type="range" id="scrub" min="0" max="${log.length}" value="${replayAt}" style="flex:1"><span class="mute small" style="min-width:90px">op ${replayAt} / ${log.length}</span></div>
+      <p class="mute small">${replayAt > 0 ? opLine(log[replayAt - 1]) : 'Start'}</p><div class="panel" id="rstage"></div>` : ''}`;
+  $('csv').onclick = () => { pendingExport = true; ws.send(JSON.stringify({ type: 'log' })); };
   if ($('loadLog')) $('loadLog').onclick = () => ws.send(JSON.stringify({ type: 'log' }));
-  if ($('scrub')) { $('scrub').oninput = e => { replayAt = +e.target.value; render(); }; $('liveBtn').onclick = () => { log = null; replayAt = null; render(); }; }
+  if ($('unload2')) $('unload2').onclick = () => { log = null; replayAt = null; render(); };
+  if ($('scrub')) {
+    $('scrub').oninput = e => { replayAt = +e.target.value; render(); };
+    const rs = Engine.replay(log, replayAt);   // read-only view; never wired to live controls
+    if (rs.deck && rs.current) { $('rstage').innerHTML = ''; renderStage($('rstage'), rs, rs.current, { presenter: true, readonly: true }); }
+    else $('rstage').innerHTML = '<p class="mute">No deck loaded at this point.</p>';
+  }
 }
 function opLine(o) {
-  const u = user(o.actor);
-  const p = o.type === 'answer' ? `chose ${String.fromCharCode(65 + o.payload.choice)}`
-    : o.type === 'move' ? `moved ${o.payload.id} to (${o.payload.x.toFixed(1)}, ${o.payload.y.toFixed(1)})`
-    : o.type === 'select' ? (o.payload.node ? `selected ${o.payload.node}` : 'released') : o.type;
-  return `${new Date(o.t).toLocaleTimeString()} — ${esc(u.name)} ${esc(p)}`;
+  const p = o.payload || {}, u = user(o.actor).name;
+  const what = { answer: () => `chose ${letter(p.choice)}`, text: () => 'submitted text', insert: () => `typed "${p.text}"`, delete: () => `deleted ${p.len}`,
+    match: () => `matched ${p.i + 1} → ${p.j == null ? '–' : letter(p.j)}`, num: () => `entered ${p.m}e${p.e} ${p.u}`, pick: () => 'picked factors',
+    move: () => `moved ${p.id} to (${(+p.x).toFixed(1)}, ${(+p.y).toFixed(1)})`, select: () => p.node ? `selected ${p.node}` : 'released', goto: () => `went to ${p.item}` }[o.type];
+  return `${new Date(o.t).toLocaleTimeString()} — ${esc(u)} ${esc(what ? what() : o.type)}${p.item ? ' [' + p.item + ']' : ''}`;
 }
 
-function renderSetupForm(form) {
-  if (setupKind === 'mcq') {
-    form.innerHTML = h`
-      <label>Question</label><textarea id="q">Which vector is the sum of a and b?</textarea>
-      <label>Options, one per line</label><textarea id="opts">a + b\na − b\nb − a\nneither</textarea>
-      <label>Correct option letter (blank for a poll)</label><input id="key" value="A" style="width:80px">
-      <div class="row" style="margin-top:12px"><button class="primary" id="load">Load activity</button></div>`;
-    document.getElementById('load').onclick = () => {
-      const options = document.getElementById('opts').value.split('\n').map(x => x.trim()).filter(Boolean);
-      const k = document.getElementById('key').value.trim().toUpperCase();
-      op('load', { kind: 'mcq', config: { question: document.getElementById('q').value, options, key: k ? k.charCodeAt(0) - 65 : null } });
-    };
-  } else {
-    form.innerHTML = h`
-      <label>Prompt</label><textarea id="p">Place R at the tip of a + b (a = (3, 1), b = (−1, 2)).</textarea>
-      <label>Objects and their target positions — one per line: label x y</label><textarea id="t">R 2 3</textarea>
-      <label>Grid range (±)</label><input id="r" type="number" value="5" style="width:80px">
-      <label>Tolerance</label><input id="tol" type="number" step="0.1" value="0.5" style="width:80px">
-      <label>Mode</label><select id="mode"><option value="shared">Shared board (first to grab an object may move it)</option><option value="individual">Individual boards (each participant places their own)</option></select>
-      <div class="row" style="margin-top:12px"><button class="primary" id="load">Load activity</button></div>`;
-    document.getElementById('load').onclick = () => {
+// ---- deck editor: a compact text format, one item per block ---------------
+const SAMPLE = `# Vectors, first pass
+
+mcq: Which expression gives the vector from P to Q?
+A. P + Q
+* B. Q − P
+C. P − Q
+D. |Q| − |P|
+
+frq: In one sentence, why does the order of addition not matter for vectors?
+
+num: Avogadro's number with units.
+key: 6.02e23 mol^-1
+tol: 0.02
+
+match: Pair each quantity with its SI unit.
+force = newton
+energy = joule
+power = watt
+pressure = pascal
+
+product: Build 360 from the bank (each factor once).
+target: 360
+bank: 2 3 4 5 6 8 9 12
+
+place: Place R at the tip of a + b, with a = (3, 1) and b = (−1, 2).
+R 2 3
+mode: individual
+tol: 0.5
+
+collab: Together, write the definition of a vector.
+seed: A vector is`;
+
+function parseDeck(text) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  let title = 'Deck'; const blocks = []; let cur = null;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.startsWith('#') && !cur) { title = line.replace(/^#+\s*/, ''); continue; }
+    if (!line) { cur = null; continue; }
+    if (!cur) { blocks.push(cur = []); }
+    cur.push(line);
+  }
+  const num = s => { const m = String(s).trim().match(/^(-?[\d.]+)\s*(?:e|×\s*10\^?)\s*(-?\d+)?\s*(.*)$/i); if (!m) return null; return { m: +m[1], e: m[2] ? +m[2] : 0, u: m[3].trim() }; };
+  const items = blocks.map((b, i) => {
+    const head = b[0].match(/^(\w+):\s*(.*)$/); if (!head) throw new Error(`Block ${i + 1} must start with a type like "mcq:"`);
+    const kind = head[1], prompt = head[2], rest = b.slice(1), kv = {};
+    const plain = rest.filter(l => { const m = l.match(/^(\w+):\s*(.*)$/); if (m && kind !== 'match') { kv[m[1]] = m[2]; return false; } return true; });
+    let config;
+    if (kind === 'mcq') {
+      let key = null; const options = plain.map((l, j) => { let t = l; if (t.startsWith('*')) { key = j; t = t.slice(1).trim(); } return t.replace(/^[A-Za-z][.)]\s*/, ''); });
+      config = { question: prompt, options, key };
+    } else if (kind === 'frq') config = { question: prompt, key: kv.key || null };
+    else if (kind === 'collab') config = { prompt, seed: kv.seed || '' };
+    else if (kind === 'match') {
+      const left = [], right = [], key = [];
+      rest.forEach(l => { const [a, c] = l.split('=').map(x => x.trim()); if (a && c) { left.push(a); right.push(c); key.push(right.length - 1); } });
+      // shuffle the right column deterministically so it isn't in order
+      let seed = 7 + right.length * 31; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+      const order = right.map((_, j) => j); for (let k = order.length - 1; k > 0; k--) { const q = Math.floor(rnd() * (k + 1)); [order[k], order[q]] = [order[q], order[k]]; }
+      config = { prompt, left, right: order.map(j => right[j]), key: key.map(j => order.indexOf(j)) };
+    } else if (kind === 'num') config = { prompt, key: kv.key ? num(kv.key) : null, relTol: kv.tol ? +kv.tol : 0.02 };
+    else if (kind === 'product') config = { prompt, target: +kv.target, bank: (kv.bank || '').split(/[\s,]+/).filter(Boolean).map(Number) };
+    else if (kind === 'place') {
       const objects = [], targets = {};
-      document.getElementById('t').value.split('\n').forEach(line => {
-        const [label, x, y] = line.trim().split(/\s+/); if (!label || isNaN(+x) || isNaN(+y)) return;
-        objects.push({ id: label, label, x: 0, y: 0 }); targets[label] = { x: +x, y: +y };
-      });
-      if (!objects.length) return alert('Add at least one object line like: R 2 3');
-      op('load', { kind: 'place', config: { prompt: document.getElementById('p').value, objects, targets, range: +document.getElementById('r').value || 5, tolerance: +document.getElementById('tol').value || 0.5, mode: document.getElementById('mode').value } });
-    };
-  }
+      plain.forEach(l => { const [label, x, y] = l.split(/\s+/); if (label && !isNaN(+x) && !isNaN(+y)) { objects.push({ id: label, label }); targets[label] = { x: +x, y: +y }; } });
+      config = { prompt, objects, targets, mode: kv.mode || 'shared', range: kv.range ? +kv.range : 5, tolerance: kv.tol ? +kv.tol : 0.5 };
+    } else throw new Error(`Unknown item type "${kind}" in block ${i + 1}`);
+    if (!Engine.activities[kind]) throw new Error('Unknown kind ' + kind);
+    return { id: 'i' + (i + 1), kind, config };
+  });
+  return { title, items };
+}
+function renderDeckEditor(root) {
+  if (deckText == null) deckText = SAMPLE;
+  root.innerHTML = h`<h2>Deck</h2>
+    <p class="mute small">One item per block, blank line between. Types: mcq (* marks the key), frq, num (key: 6.02e23 mol^-1), match (a = b lines), product (target:, bank:), place (label x y lines; mode: shared|individual), collab (seed:).</p>
+    <textarea class="mono" id="decktext">${esc(deckText)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="primary" id="loaddeck">Load deck</button><span class="refused" id="err"></span></div>`;
+  $('decktext').oninput = e => deckText = e.target.value;
+  $('loaddeck').onclick = () => { try { op('load_deck', { deck: parseDeck(deckText) }); } catch (e) { $('err').textContent = e.message; } };
 }
 
-// ---------------------------------------------------------------- participant
-function renderParticipant(s) {
-  const a = s.activity && Engine.activities[s.activity];
-  el(h`
-    <div class="row" style="justify-content:space-between"><div>${sq(me.id, true)} <b>${esc(user(me.id).name)}</b> <span class="mute">in ${me.room}</span></div><div>${phaseLine(s)}</div></div>
+// ---- CSV export: final answer, correctness, and number of changes per item --
+function exportCsv() {
+  const s = state; if (!s.deck || !log) return alert('Load a deck first.');
+  const ps = parts(s), items = s.deck.items;
+  const changes = {}; log.forEach(o => { if (!Engine.CORE.has(o.type) && o.payload.item) { const k = o.actor + '|' + o.payload.item; changes[k] = (changes[k] || 0) + 1; } });
+  const cell = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const head = ['name', ...items.flatMap((it, i) => [`${i + 1} answer`, `${i + 1} correct`, `${i + 1} changes`])];
+  const rows = ps.map(u => [u.name, ...items.flatMap(it => {
+    const r = s.results[it.id], pu = r && r.perUser && r.perUser[u.id];
+    const fallback = !r && s.docs[it.id].answers ? s.docs[it.id].answers[u.id] : null;
+    return [pu ? pu.answer : fallback == null ? '' : typeof fallback === 'object' ? JSON.stringify(fallback) : fallback, pu ? (pu.correct == null ? '' : pu.correct ? 1 : 0) : '', changes[u.id + '|' + it.id] || 0];
+  })]);
+  const csv = [head, ...rows].map(r => r.map(cell).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${me.room}-${(s.deck.title || 'deck').replace(/\W+/g, '_')}.csv`; a.click();
+}
+
+// -------------------------------------------------------------- participant
+function renderParticipant() {
+  const s = state, cur = s.current;
+  app.innerHTML = h`
+    <div class="row" style="justify-content:space-between"><div>${sq(me.id, true)} <b>${esc(user(me.id).name)}</b> <span class="mute small">in ${me.room}</span></div><div>${cur ? phaseLine(s, cur) : ''}</div></div>
     <span class="refused">${refusedNote}</span>
-    <div id="stage">${!a ? '<p class="mute" style="margin-top:40px">Waiting for the presenter to start an activity.</p>' : ''}</div>`);
-  const stage = document.getElementById('stage');
-  if (!a) return;
-  if (a.kind === 'mcq') {
-    stage.innerHTML = mcqHtml(s, me.id, false);
-    stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { select('option ' + b.dataset.i); op('answer', { choice: +b.dataset.i }); });
-  }
-  if (a.kind === 'place') {
-    stage.innerHTML = h`<p>${esc(s.doc.prompt)}</p><canvas id="board" width="800" height="800"></canvas>${placeResultsHtml(s, me.id)}`;
-    const c = document.getElementById('board'); drawBoard(s, c, me.id, false); bindBoard(c);
-  }
+    <div id="stage">${!cur ? '<p class="mute" style="margin-top:40px">Waiting for the presenter.</p>' : ''}</div>`;
+  if (cur) renderStage($('stage'), s, cur, { presenter: false });
 }
 
-// ---------------------------------------------------------------------- MCQ
-function mcqHtml(s, viewerId, presenter) {
-  const d = s.doc, total = Object.keys(d.answers).length || 1, closed = s.phase.status === 'closed';
-  const showKey = closed && d.key != null;
-  return h`<h2 style="margin-top:12px">${esc(d.question)}</h2>` + d.options.map((o, i) => {
+// ------------------------------------------------------------ item stages
+function renderStage(root, s, itemId, v) {
+  const it = Engine.item(s, itemId), doc = s.docs[itemId], ph = Engine.phase(s, itemId), r = s.results[itemId];
+  const ctx = { s, it, doc, ph, r, id: itemId, closed: ph.status === 'closed', open: ph.status === 'open', ...v, canAct: !v.presenter && ph.status === 'open' && !v.readonly };
+  const views = { mcq: mcqStage, frq: frqStage, collab: collabStage, match: matchStage, num: numStage, product: productStage, place: placeStage };
+  root.innerHTML = '';
+  views[it.kind](root, ctx);
+}
+function resultsTable(c, extra) {
+  if (!c.presenter || !c.closed || !c.r || !c.r.perUser) return '';
+  const rows = Object.keys(c.r.perUser).map(id => { const p = c.r.perUser[id]; return h`<tr><td>${sq(id)} ${esc(user(id).name)}</td><td>${esc(p.answer)}</td><td class="${p.correct == null ? 'mute' : p.correct ? 'ok' : 'bad'}">${p.correct == null ? '' : p.correct ? 'correct' : (extra ? extra(p) : 'incorrect')}</td></tr>`; });
+  return h`<table style="margin-top:12px">${rows.join('') || '<tr><td class="mute">No responses.</td></tr>'}</table>`;
+}
+function myVerdict(c) {
+  if (c.presenter || !c.closed || !c.r || !c.r.perUser || !c.r.perUser[me.id] || c.r.perUser[me.id].correct == null) return '';
+  return h`<p><b>${c.r.perUser[me.id].correct ? 'Correct.' : 'Not this time.'}</b></p>`;
+}
+const liveList = c => {   // presenter's live view of one-answer-per-user docs
+  const a = c.doc.answers || {};
+  return h`<table>${Object.keys(a).map(id => h`<tr><td style="width:160px">${sq(id)} ${esc(user(id).name)}</td><td>${esc(typeof a[id] === 'object' ? JSON.stringify(a[id]) : a[id])}</td></tr>`).join('') || '<tr><td class="mute">No responses yet.</td></tr>'}</table>`;
+};
+
+// MCQ
+function mcqStage(root, c) {
+  const d = c.doc, total = Object.keys(d.answers).length || 1;
+  root.innerHTML = h`<h3>${esc(d.question)}</h3>` + d.options.map((o, i) => {
     const who = Object.keys(d.answers).filter(id => d.answers[id] === i);
-    const selecting = Engine.selectors(s, 'option ' + i).filter(id => !who.includes(id));
-    const mine = viewerId && d.answers[viewerId] === i;
-    const bar = presenter || closed || !s.phase.sealed ? h`<span class="bar" style="width:${(who.length / total) * 40}%"></span><span class="mute">${who.length}</span>` : '';
-    return h`<button class="opt ${mine ? 'mine' : ''} ${showKey && d.key === i ? 'key' : ''}" data-i="${i}" ${!presenter && s.phase.status !== 'open' ? 'disabled' : ''}>
-      <b>${String.fromCharCode(65 + i)}</b> <span>${esc(o)}</span> ${bar}
-      <span class="sqs">${who.map(id => sq(id)).join('')}${selecting.map(id => `<span style="opacity:.4">${sq(id)}</span>`).join('')}</span></button>`;
-  }).join('') + (closed && s.results && viewerId && s.results.perUser[viewerId] && s.results.perUser[viewerId].correct != null
-    ? h`<p><b>${s.results.perUser[viewerId].correct ? 'Correct.' : 'Not this time.'}</b></p>` : '') +
-    (presenter && closed ? h`<p class="mute">${Object.keys(d.answers).length} of ${Object.values(s.users).filter(u => u.role === 'participant').length} answered.</p>` : '');
+    const selecting = Engine.selectors(c.s, `${c.id}:option ${i}`).filter(id => !who.includes(id));
+    const mine = !c.presenter && d.answers[me.id] === i;
+    const bar = c.presenter || c.closed || !c.ph.sealed ? h`<span class="bar" style="width:${(who.length / total) * 40}%"></span><span class="mute">${who.length}</span>` : '';
+    return h`<button class="opt ${mine ? 'mine' : ''} ${c.closed && d.key === i ? 'key' : ''}" data-i="${i}" ${!c.canAct ? 'disabled' : ''}>
+      <b>${letter(i)}</b> <span>${esc(o)}</span> ${bar}<span class="sqs">${who.map(id => sq(id)).join('')}${selecting.map(id => `<span style="opacity:.4">${sq(id)}</span>`).join('')}</span></button>`;
+  }).join('') + myVerdict(c) + (c.presenter && c.closed ? h`<p class="mute small">${Object.keys(d.answers).length} of ${parts(c.s).length} answered.</p>` : '');
+  if (c.canAct) root.querySelectorAll('.opt').forEach(b => b.onclick = () => { select(`${c.id}:option ${b.dataset.i}`); op('answer', { item: c.id, choice: +b.dataset.i }); });
 }
 
-// -------------------------------------------------------------------- Place
-function boardMap(s, c) {
-  const R = s.doc.range, W = c.width;
-  return { toPx: p => ({ x: (p.x + R) / (2 * R) * W, y: (R - p.y) / (2 * R) * W }), toWorld: q => ({ x: q.x / W * 2 * R - R, y: R - q.y / W * 2 * R }), R, W };
+// FRQ
+function frqStage(root, c) {
+  const d = c.doc;
+  if (c.presenter) { root.innerHTML = h`<h3>${esc(d.question)}</h3>${c.closed ? resultsTable(c) : liveList(c)}${d.key ? h`<p class="mute small">Key: ${esc(d.key)}</p>` : ''}`; return; }
+  const draft = local.frqDraft[c.id] ?? d.answers[me.id] ?? '';
+  root.innerHTML = h`<h3>${esc(d.question)}</h3><textarea id="frq" ${!c.canAct ? 'disabled' : ''}>${esc(draft)}</textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" id="send" ${!c.canAct ? 'disabled' : ''}>${d.answers[me.id] != null ? 'Update answer' : 'Submit answer'}</button>
+    <span class="mute small">${d.answers[me.id] != null ? 'Submitted.' : ''}</span></div>${myVerdict(c)}`;
+  $('frq').oninput = e => local.frqDraft[c.id] = e.target.value;
+  $('frq').onfocus = () => select(`${c.id}:text`);
+  $('send').onclick = () => op('text', { item: c.id, text: $('frq').value });
 }
-function drawBoard(s, c, viewerId, presenter) {
-  const ctx = c.getContext('2d'), m = boardMap(s, c), d = s.doc, act = Engine.activities.place;
-  const cs = getComputedStyle(document.documentElement);
-  ctx.clearRect(0, 0, c.width, c.height);
-  ctx.strokeStyle = cs.getPropertyValue('--line'); ctx.lineWidth = 1;
-  for (let i = -m.R; i <= m.R; i++) {
-    const a = m.toPx({ x: i, y: -m.R }), b = m.toPx({ x: i, y: m.R });
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    const c1 = m.toPx({ x: -m.R, y: i }), c2 = m.toPx({ x: m.R, y: i });
-    ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y); ctx.stroke();
-  }
-  ctx.strokeStyle = cs.getPropertyValue('--mute'); ctx.lineWidth = 2;
-  const o = m.toPx({ x: 0, y: 0 });
-  ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(c.width, o.y); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, c.height); ctx.stroke();
 
-  const closed = s.phase.status === 'closed';
-  if (closed) for (const id in d.targets) {   // show targets after close
-    const t = m.toPx(d.targets[id]);
-    ctx.strokeStyle = cs.getPropertyValue('--ok'); ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(t.x, t.y, d.tolerance / (2 * m.R) * m.W, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-  }
+// Collaborative text: diff local edits into insert/delete ops.
+function collabStage(root, c) {
+  const d = c.doc, sel = Engine.selectors(c.s, `${c.id}:text`);
+  const authors = Object.keys(d.authors).map(id => h`<span>${sq(id)}${d.authors[id]}</span>`).join(' ');
+  if (c.presenter || !c.canAct) { root.innerHTML = h`<h3>${esc(d.prompt)}</h3><pre class="text">${esc(d.text)}</pre><p class="small mute">Editing now: ${sel.map(id => sq(id)).join('') || 'nobody'} · edits: ${authors || 'none'}</p>`; return; }
+  const ta = document.createElement('textarea'); ta.value = d.text; ta.style.minHeight = '160px';
+  root.innerHTML = h`<h3>${esc(d.prompt)}</h3>`; root.appendChild(ta);
+  const info = document.createElement('p'); info.className = 'small mute'; info.innerHTML = `Editing now: ${sel.map(id => sq(id)).join('') || 'nobody'} · edits: ${authors || 'none'}`; root.appendChild(info);
+  const caret = local.collabText[c.id]; if (caret != null && document.activeElement !== ta) { ta.focus(); ta.setSelectionRange(Math.min(caret, ta.value.length), Math.min(caret, ta.value.length)); }
+  ta.onfocus = () => select(`${c.id}:text`); ta.onblur = () => { local.collabText[c.id] = null; select(null); };
+  ta.oninput = () => {
+    const before = d.text, after = ta.value;
+    let a = 0; while (a < before.length && a < after.length && before[a] === after[a]) a++;
+    let b = 0; while (b < before.length - a && b < after.length - a && before[before.length - 1 - b] === after[after.length - 1 - b]) b++;
+    const del = before.length - a - b, ins = after.slice(a, after.length - b);
+    local.collabText[c.id] = ta.selectionStart;
+    if (del > 0) op('delete', { item: c.id, pos: a, len: del });
+    if (ins) op('insert', { item: c.id, pos: a, text: ins });
+  };
+}
 
-  // Which positions to draw: shared board, my copy, or (presenter, individual) everyone's copies.
-  const sets = d.mode === 'shared' ? [{ pos: d.objects, who: null }]
-    : presenter ? Object.keys(s.users).filter(id => s.users[id].role === 'participant').map(id => ({ pos: act.positions(s, id), who: id }))
-    : [{ pos: act.positions(s, viewerId), who: viewerId }];
+// Matching
+function matchStage(root, c) {
+  const d = c.doc;
+  if (c.presenter) {
+    root.innerHTML = h`<h3>${esc(d.prompt)}</h3><table>${d.left.map((l, i) => h`<tr><td>${i + 1}. ${esc(l)}</td><td>${c.closed && d.key ? '<span class="ok">' + letter(d.key[i]) + '. ' + esc(d.right[d.key[i]]) + '</span>' : ''}</td></tr>`).join('')}</table>
+      <p class="mute small">Right column: ${d.right.map((r, j) => letter(j) + '. ' + esc(r)).join(' &nbsp; ')}</p>${c.closed ? resultsTable(c, p => `${p.score} of ${p.of}`) : liveList(c)}`; return;
+  }
+  const mine = d.answers[me.id] || d.left.map(() => null);
+  root.innerHTML = h`<h3>${esc(d.prompt)}</h3><table>${d.left.map((l, i) => h`<tr><td style="width:45%">${esc(l)}</td><td><select data-i="${i}" ${!c.canAct ? 'disabled' : ''}><option value="">—</option>${d.right.map((r, j) => h`<option value="${j}" ${mine[i] === j ? 'selected' : ''}>${letter(j)}. ${esc(r)}</option>`).join('')}</select></td></tr>`).join('')}</table>${myVerdict(c)}`;
+  root.querySelectorAll('select').forEach(sl => sl.onchange = () => op('match', { item: c.id, i: +sl.dataset.i, j: sl.value === '' ? null : +sl.value }));
+}
+
+// Structured numeric
+function numStage(root, c) {
+  const d = c.doc;
+  const detail = p => p.detail ? ['value', 'units'].filter(k => !p.detail[k]).map(k => k + ' wrong').join(', ') + (p.detail.magnitude && !p.detail.value ? ' (right magnitude)' : '') : 'incorrect';
+  if (c.presenter) { root.innerHTML = h`<h3>${esc(d.prompt)}</h3>${c.closed ? resultsTable(c, detail) : liveList(c)}${d.key ? h`<p class="mute small">Key: ${d.key.m} × 10^${d.key.e} ${esc(d.key.u)} (±${d.relTol * 100}%)</p>` : ''}`; return; }
+  const a = local.numDraft[c.id] || d.answers[me.id] || { m: '', e: 0, u: '' };
+  root.innerHTML = h`<h3>${esc(d.prompt)}</h3>
+    <div class="numrow"><input id="m" type="number" step="any" placeholder="mantissa" value="${a.m}" ${!c.canAct ? 'disabled' : ''}><span>× 10^</span><input id="e" type="number" step="1" value="${a.e}" ${!c.canAct ? 'disabled' : ''}><input id="u" placeholder="unit" value="${esc(a.u)}" ${!c.canAct ? 'disabled' : ''}></div>
+    <div class="row" style="margin-top:8px"><button class="primary" id="send" ${!c.canAct ? 'disabled' : ''}>${d.answers[me.id] ? 'Update answer' : 'Submit answer'}</button><span class="mute small">${d.answers[me.id] ? 'Submitted.' : ''}</span></div>${myVerdict(c)}`;
+  ['m', 'e', 'u'].forEach(k => $(k).oninput = () => local.numDraft[c.id] = { m: $('m').value, e: $('e').value, u: $('u').value });
+  $('send').onclick = () => { const m = parseFloat($('m').value), e = parseInt($('e').value || '0', 10); if (isNaN(m) || isNaN(e)) return alert('Enter a mantissa and an integer exponent.'); op('num', { item: c.id, m, e, u: $('u').value }); };
+}
+
+// Build a product
+function productStage(root, c) {
+  const d = c.doc;
+  if (c.presenter) { root.innerHTML = h`<h3>${esc(d.prompt)}</h3><p class="mute small">Bank: ${d.bank.join(' ')} · target ${d.target}</p>${c.closed ? resultsTable(c) : liveList(c)}`; return; }
+  const picks = d.answers[me.id] || [], prod = picks.reduce((a, i) => a * d.bank[i], 1);
+  root.innerHTML = h`<h3>${esc(d.prompt)}</h3><div>${d.bank.map((b, i) => h`<button class="chip ${picks.includes(i) ? 'on' : ''}" data-i="${i}" ${!c.canAct ? 'disabled' : ''}>${b}</button>`).join('')}</div>
+    <p style="font-size:20px;margin-top:12px">${picks.length ? picks.map(i => d.bank[i]).join(' × ') + ' = <b>' + +prod.toPrecision(6) + '</b>' : '<span class="mute">Tap factors to multiply them.</span>'}</p>${myVerdict(c)}`;
+  root.querySelectorAll('.chip').forEach(b => b.onclick = () => { const i = +b.dataset.i; const next = picks.includes(i) ? picks.filter(x => x !== i) : [...picks, i]; op('pick', { item: c.id, picks: next }); });
+}
+
+// Place objects
+function placeStage(root, c) {
+  const d = c.doc;
+  root.innerHTML = h`<h3>${esc(d.prompt)}</h3><canvas width="800" height="800"></canvas><div id="pr"></div>`;
+  const cv = root.querySelector('canvas'); drawBoard(c, cv);
+  if (c.canAct) bindBoard(c, cv);
+  const pr = root.querySelector('#pr');
+  if (c.closed && c.r) {
+    const line = sc => `${sc.hits} of ${sc.n} within tolerance` + Object.keys(sc.per).map(id => ` · ${id} off by ${sc.per[id].error.toFixed(2)}`).join('');
+    if (c.r.board) pr.innerHTML = h`<p><b>${line(c.r.board)}</b></p>`;
+    else if (!c.presenter) pr.innerHTML = c.r.perUser[me.id] ? h`<p><b>${line(c.r.perUser[me.id])}</b></p>` : '';
+    else pr.innerHTML = resultsTable(c, p => `${p.hits} of ${p.n}`);
+  }
+}
+function boardMap(d, cv) { const R = d.range, W = cv.width; return { toPx: p => ({ x: (p.x + R) / (2 * R) * W, y: (R - p.y) / (2 * R) * W }), toWorld: q => ({ x: q.x / W * 2 * R - R, y: R - q.y / W * 2 * R }), R, W }; }
+function drawBoard(c, cv) {
+  const ctx = cv.getContext('2d'), d = c.doc, m = boardMap(d, cv), cs = getComputedStyle(document.documentElement), act = Engine.activities.place;
+  ctx.clearRect(0, 0, cv.width, cv.height); ctx.strokeStyle = cs.getPropertyValue('--line'); ctx.lineWidth = 1;
+  for (let i = -m.R; i <= m.R; i++) { const a = m.toPx({ x: i, y: -m.R }), b = m.toPx({ x: i, y: m.R }), p = m.toPx({ x: -m.R, y: i }), q = m.toPx({ x: m.R, y: i }); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+  ctx.strokeStyle = cs.getPropertyValue('--mute'); ctx.lineWidth = 2; const o = m.toPx({ x: 0, y: 0 });
+  ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(cv.width, o.y); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, cv.height); ctx.stroke();
+  if (c.closed) for (const id in d.targets) { const t = m.toPx(d.targets[id]); ctx.strokeStyle = cs.getPropertyValue('--ok'); ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.arc(t.x, t.y, d.tolerance / (2 * m.R) * m.W, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
+  const sets = d.mode === 'shared' ? [{ pos: d.objects, who: null }] : c.presenter ? parts(c.s).map(u => ({ pos: act.positions(d, u.id), who: u.id })) : [{ pos: act.positions(d, me.id), who: me.id }];
   ctx.font = '600 22px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const { pos, who } of sets) for (const id in pos) {
-    const p = m.toPx(pos[id]); const r = d.mode === 'shared' ? 26 : 20;
+    const p = m.toPx(pos[id]), r = d.mode === 'shared' ? 26 : 20;
     ctx.fillStyle = who ? user(who).color : cs.getPropertyValue('--panel'); ctx.strokeStyle = cs.getPropertyValue('--ink'); ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = who ? '#fff' : cs.getPropertyValue('--ink'); ctx.fillText(pos[id].label, p.x, p.y);
-    if (d.mode === 'shared') {   // presence squares: holder first, then the queue
-      const sel = Engine.selectors(s, id);
-      sel.forEach((uid, k) => { ctx.fillStyle = user(uid).color; ctx.globalAlpha = k === 0 ? 1 : .45; roundRect(ctx, p.x + r + 4 + k * 16, p.y - r, 13, 13, 3); ctx.globalAlpha = 1; });
-    }
+    if (d.mode === 'shared') Engine.selectors(c.s, `${c.id}:${id}`).forEach((uid, k) => { ctx.fillStyle = user(uid).color; ctx.globalAlpha = k === 0 ? 1 : .45; ctx.beginPath(); ctx.roundRect(p.x + r + 4 + k * 16, p.y - r, 13, 13, 3); ctx.fill(); ctx.globalAlpha = 1; });
   }
 }
-function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
-function bindBoard(c) {
-  const pt = ev => { const b = c.getBoundingClientRect(); return { x: (ev.clientX - b.left) / b.width * c.width, y: (ev.clientY - b.top) / b.height * c.height }; };
-  c.onpointerdown = ev => {
-    if (state.phase.status !== 'open') return;
-    const m = boardMap(state, c), pos = Engine.activities.place.positions(state, me.id), q = pt(ev);
-    for (const id in pos) if (Math.hypot(m.toPx(pos[id]).x - q.x, m.toPx(pos[id]).y - q.y) < 30) {
-      live.drag = id; c.setPointerCapture(ev.pointerId); select(id); return;
-    }
+function bindBoard(c, cv) {
+  const pt = ev => { const b = cv.getBoundingClientRect(); return { x: (ev.clientX - b.left) / b.width * cv.width, y: (ev.clientY - b.top) / b.height * cv.height }; };
+  const d = () => state.docs[c.id];
+  cv.onpointerdown = ev => {
+    const m = boardMap(d(), cv), pos = Engine.activities.place.positions(d(), me.id), q = pt(ev);
+    for (const id in pos) if (Math.hypot(m.toPx(pos[id]).x - q.x, m.toPx(pos[id]).y - q.y) < 30) { local.drag = id; cv.setPointerCapture(ev.pointerId); select(`${c.id}:${id}`); return; }
   };
   let last = 0;
-  c.onpointermove = ev => {
-    if (!live.drag) return;
-    const m = boardMap(state, c), w = m.toWorld(pt(ev));
-    const x = Math.max(-m.R, Math.min(m.R, w.x)), y = Math.max(-m.R, Math.min(m.R, w.y));
-    if (Date.now() - last > 40) { last = Date.now(); op('move', { id: live.drag, x, y }); }
-  };
-  c.onpointerup = c.onpointercancel = ev => {
-    if (!live.drag) return;
-    const m = boardMap(state, c), w = m.toWorld(pt(ev));
-    const snap = v => Math.round(Math.max(-m.R, Math.min(m.R, v)) * 2) / 2;   // half-unit snap on release
-    op('move', { id: live.drag, x: snap(w.x), y: snap(w.y) });
-    live.drag = null; select(null);
-  };
-}
-function placeResultsHtml(s, viewerId) {
-  if (s.phase.status !== 'closed' || !s.results) return '';
-  const r = s.results;
-  const line = sc => `${sc.hits} of ${sc.n} within tolerance` + Object.keys(sc.per).map(id => ` · ${id} off by ${sc.per[id].error.toFixed(2)}`).join('');
-  if (r.board) return h`<p><b>${line(r.board)}</b></p>`;
-  if (viewerId) return r.perUser[viewerId] ? h`<p><b>${line(r.perUser[viewerId])}</b></p>` : '';
-  return '<table>' + Object.keys(r.perUser).map(id => h`<tr><td>${sq(id)} ${esc(user(id).name)}</td><td>${line(r.perUser[id])}</td></tr>`).join('') + '</table>';
+  cv.onpointermove = ev => { if (!local.drag) return; const m = boardMap(d(), cv), w = m.toWorld(pt(ev)); if (Date.now() - last > 40) { last = Date.now(); op('move', { item: c.id, id: local.drag, x: Math.max(-m.R, Math.min(m.R, w.x)), y: Math.max(-m.R, Math.min(m.R, w.y)) }); } };
+  cv.onpointerup = cv.onpointercancel = ev => { if (!local.drag) return; const m = boardMap(d(), cv), w = m.toWorld(pt(ev)); const snap = v => Math.round(Math.max(-m.R, Math.min(m.R, v)) * 2) / 2; op('move', { item: c.id, id: local.drag, x: snap(w.x), y: snap(w.y) }); local.drag = null; select(null); };
 }
 
 render();
